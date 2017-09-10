@@ -19,6 +19,7 @@ import time
 from operator import itemgetter, attrgetter
 from itertools import count, starmap
 from pyglet import event
+import socket
 
 # structs according to
 # http://msdn.microsoft.com/en-gb/library/windows/desktop/ee417001%28v=vs.85%29.aspx
@@ -340,9 +341,89 @@ def sample_first_joystick():
         j.set_vibration(left_speed, right_speed)
 
     while True:
-        j.dispatch_events()
-        time.sleep(.01)
+        try:
+            j.dispatch_events()
+            time.sleep(.01)
+        except KeyboardInterrupt:
+            print("[!] Exiting..!")
+
+def run_joysticktoclient():
+    """
+    Receive input from controller and send data to RPI/lattecar
+    :return: None
+    """
+    _control = ControllerSocket()
+    joysticks = XInputJoystick.enumerate_devices()
+    device_numbers = list(map(attrgetter('device_number'), joysticks))
+
+    print('found %d devices: %s' % (len(joysticks), device_numbers))
+
+    if not joysticks:
+        sys.exit(0)
+
+    j = joysticks[0]
+    print('using %d' % j.device_number)
+
+    global parseval
+    global parsethrottle
+    global parsestering
+
+    parseval = 0
+    parsethrottle = 0
+    parsestering = 0
+
+    @j.event
+    def on_button(button, pressed):
+        print('button', button, pressed)
+        _control.send_data(b'collect, ' + str(button).encode() + b', ' + str(pressed).encode())
+        # global parseval
+        # parseval += 1
+        # print(parseval)
+
+
+    left_speed = 0
+    right_speed = 0
+
+    @j.event
+    def on_axis(axis, value):
+        # global parseval
+        # print(parseval)
+        left_speed = 0
+        right_speed = 0
+
+        print('axis', axis, value)
+        if axis == "left_trigger":
+            left_speed = value
+        elif axis == "right_trigger":
+            right_speed = value
+        j.set_vibration(left_speed, right_speed)
+
+    while True:
+        try:
+            j.dispatch_events()
+            time.sleep(.01)
+        except KeyboardInterrupt:
+            print("[!] Exiting..!")
+            _control.socket_close()
+            exit()
+
+
+class ControllerSocket:
+    def __init__(self):
+        self.host = '192.168.0.110'
+        self.port = 5050
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((self.host, self.port))
+
+    def send_data(self, data):
+        self.sock.send(data)
+
+    def socket_close(self):
+        self.sock.close()
+
 
 if __name__ == "__main__":
-    sample_first_joystick()
+    # sample_first_joystick()
     # determine_optimal_sample_rate()
+    run_joysticktoclient()
+
