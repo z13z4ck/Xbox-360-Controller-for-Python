@@ -375,7 +375,7 @@ def run_joysticktoclient():
     @j.event
     def on_button(button, pressed):
         print('button', button, pressed)
-        _control.send_data(b'collect, ' + str(button).encode() + b', ' + str(pressed).encode())
+        # _control.send_data(b'collect, ' + str(button).encode() + b', ' + str(pressed).encode())
         # global parseval
         # parseval += 1
         # print(parseval)
@@ -391,6 +391,19 @@ def run_joysticktoclient():
         left_speed = 0
         right_speed = 0
 
+        if value < 0 :
+            value = (value - 0.50) * 100
+        elif value > 0:
+            value = (value + 0.50) * 100
+
+        if axis == 'l_thumb_x':
+            global parsestering
+            parsestering = value
+
+        if axis == 'r_thumb_y':
+            global parsethrottle
+            parsethrottle = value
+
         print('axis', axis, value)
         if axis == "left_trigger":
             left_speed = value
@@ -402,6 +415,7 @@ def run_joysticktoclient():
         try:
             j.dispatch_events()
             time.sleep(.01)
+            _control.send_data(b'collect, ' + str(int(parsethrottle)).encode() + b', ' + str(int(parsestering)).encode())
         except KeyboardInterrupt:
             print("[!] Exiting..!")
             _control.socket_close()
