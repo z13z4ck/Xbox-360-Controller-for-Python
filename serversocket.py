@@ -31,9 +31,12 @@ class ThreadedServer(object):
                     # client.send(response)
                 else:
                     raise socket.error('Client disconnected')
-            except:
+            except KeyboardInterrupt:
                 client.close()
                 return False
+
+    def close_socket(self):
+        self.sock.close()
 
 if __name__ == "__main__":
     while True:
