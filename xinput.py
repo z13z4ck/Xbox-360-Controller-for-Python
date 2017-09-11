@@ -219,7 +219,7 @@ class XInputJoystick(event.EventDispatcher):
             # done by feel rather than following http://msdn.microsoft.com/en-gb/library/windows/desktop/ee417001%28v=vs.85%29.aspx#dead_zone
             # ags, 2014-07-01
             if ((old_val != new_val and (new_val > 0.08000000000000000 or new_val < -0.08000000000000000) and abs(old_val - new_val) > 0.00000000500000000) or
-               (axis == 'right_trigger' or axis == 'left_trigger') and new_val == 0 and abs(old_val - new_val) > 0.00000000500000000):
+               (axis == 'right_trigger' or axis == 'left_trigger' or axis == 'r_thumb_y' or axis == 'l_thumb_x') and new_val == 0 and abs(old_val - new_val) > 0.00000000500000000):
                 self.dispatch_event('on_axis', axis, new_val)
 
     def dispatch_button_events(self, state):
@@ -347,6 +347,18 @@ def sample_first_joystick():
         except KeyboardInterrupt:
             print("[!] Exiting..!")
 
+
+def mapFromTo(x, a, b, c, d):
+    """
+        x:input value;
+        a,b:input range
+        c,d:output range
+        y:return interger value
+    """
+    y = (x-a)/(b-a)*(d-c)+c
+    return int(y)
+
+
 def run_joysticktoclient():
     """
     Receive input from controller and send data to RPI/lattecar
@@ -391,31 +403,39 @@ def run_joysticktoclient():
         left_speed = 0
         right_speed = 0
 
-        if value < 0 :
-            value = (value - 0.50) * 100
-        elif value > 0:
-            value = (value + 0.50) * 100
+        # parsethrottle = 0
+        # parsestering = 0
+
+        _val = mapFromTo(value, -1.0, 1.0, -100, 100)
 
         if axis == 'l_thumb_x':
             global parsestering
-            parsestering = value
+            parsestering = _val * 2
+            # pass
 
         if axis == 'r_thumb_y':
-            global parsethrottle
-            parsethrottle = value
+            # global parsethrottle
+            # parsethrottle = _val
+            pass
 
         print('axis', axis, value)
         if axis == "left_trigger":
+            # global parsestering
+            # parsestering = _val
             left_speed = value
+
         elif axis == "right_trigger":
-            right_speed = value
+            # right_speed = value
+            global parsethrottle
+            parsethrottle = _val
+
         j.set_vibration(left_speed, right_speed)
 
     while True:
         try:
             j.dispatch_events()
             time.sleep(.01)
-            _control.send_data(b'collect, ' + str(int(parsethrottle)).encode() + b', ' + str(int(parsestering)).encode())
+            _control.send_data(b'collect, ' + str(int(parsethrottle)).encode() + b', ' + str(int(parsestering)).encode() + b'\x00')
         except KeyboardInterrupt:
             print("[!] Exiting..!")
             _control.socket_close()
