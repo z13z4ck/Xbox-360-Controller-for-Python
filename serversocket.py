@@ -24,13 +24,21 @@ class ThreadedServer(object):
         while True:
             try:
                 data = client.recv(size)
-                if data:
-                    # Set the response to echo back the recieved data
-                    response = data
-                    print(data)
-                    # client.send(response)
-                else:
+
+                try:
+                    if data:
+                        # Set the response to echo back the recieved data
+                        response = data
+                        print(data)
+                        # client.send(response)
+                    else:
+                        raise socket.error('Client disconnected')
+
+                except KeyboardInterrupt:
+                    print("[!] Exiting..!")
+                    client.close()
                     raise socket.error('Client disconnected')
+
             except KeyboardInterrupt:
                 client.close()
                 return False
