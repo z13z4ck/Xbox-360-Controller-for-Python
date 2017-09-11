@@ -13,3 +13,5 @@ under the MIT licence terms
 * Modified to add deadzones, reduce noise, and support vibration
 * Only req is Pyglet 1.2alpha1 or higher: 
 ```pip install --upgrade http://pyglet.googlecode.com/archive/tip.zip```
+* Added capability to send data through socket. Data send format:
+  `(mode, joystickY, joystickX)`
